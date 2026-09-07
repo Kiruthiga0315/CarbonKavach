@@ -66,6 +66,7 @@ export interface RecommendationOutput {
 }
 
 export interface BusinessProfile {
+  id?: string;
   name: string;
   tamil_name: string;
   facility_type: string;
@@ -77,5 +78,25 @@ export interface BusinessProfile {
   certificate_no: string;
 }
 
-export type ActiveTab = 'upload' | 'dashboard' | 'simulator' | 'report';
+/**
+ * Machine Inventory entity matching Firestore collection `machines/{machineId}`
+ * Feeds the connected-load digital twin model.
+ *
+ * CRITICAL COMPLIANCE NOTICE:
+ * This is explicitly a modeled estimate, not sensor data.
+ */
+export interface Machine {
+  id: string;
+  businessId: string;
+  name: string;
+  rated_power_kw: number; // User-entered from nameplate (> 0)
+  quantity: number; // Positive integer (> 0)
+  typical_hours_per_day: number; // Typical daily operating hours (> 0 and <= 24)
+  typical_days_in_period: number; // Operating days in period (> 0 and <= 365)
+  load_factor: number; // Default 0.75 (IEC/electrical engineering standard), user-editable
+  notes?: string;
+  created_at?: string;
+}
+
+export type ActiveTab = 'upload' | 'dashboard' | 'machines' | 'simulator' | 'report';
 export type Language = 'en' | 'ta';

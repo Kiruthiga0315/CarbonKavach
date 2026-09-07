@@ -70,60 +70,86 @@ CRITICAL INSTRUCTIONS:
 - DO NOT calculate CO2. DO NOT make recommendations.
 - Return ONLY the strict JSON object matching the requested schema.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: mimeType || 'image/jpeg',
-              data: imageBase64,
-            },
-          },
-          {
-            text: promptText,
-          },
-        ],
-      },
-      config: {
-        systemInstruction:
-          'You are an AI bill extraction engine for Indian MSME enterprises. You extract raw numbers as strict JSON only. You NEVER calculate CO2. You NEVER invent numbers (return null if not completely confident). You NEVER produce recommendations.',
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            bill_type: {
-              type: Type.STRING,
-              enum: ['electricity', 'petrol', 'diesel'],
-              description: 'Type of bill',
-            },
-            units_consumed: {
-              type: Type.NUMBER,
-              description: 'Total kWh or Litres consumed as a number, or null if unreadable',
-              nullable: true,
-            },
-            unit: {
-              type: Type.STRING,
-              enum: ['kWh', 'litres'],
-              description: 'Measurement unit: kWh for electricity, litres for petrol/diesel',
-            },
-            billing_period_days: {
-              type: Type.INTEGER,
-              description: 'Number of billing period days, or null if not stated',
-              nullable: true,
-            },
-            cost_rupees: {
-              type: Type.NUMBER,
-              description: 'Total billed or paid amount in INR (₹) as a number, or null',
-              nullable: true,
-            },
-          },
-          required: ['bill_type', 'unit'],
-        },
-      },
-    });
+    const candidateModels = [
+      'gemini-3.6-flash',
+      'gemini-3.1-flash-lite',
+      'gemini-flash-latest',
+      'gemini-3.8-flash',
+    ];
+    let lastError: any = null;
+    let responseText = '';
 
-    const responseText = response.text?.trim();
+    for (const modelName of candidateModels) {
+      try {
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: mimeType || 'image/jpeg',
+                  data: imageBase64,
+                },
+              },
+              {
+                text: promptText,
+              },
+            ],
+          },
+          config: {
+            systemInstruction:
+              'You are an AI bill extraction engine for Indian MSME enterprises. You extract raw numbers as strict JSON only. You NEVER calculate CO2. You NEVER invent numbers (return null if not completely confident). You NEVER produce recommendations.',
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                bill_type: {
+                  type: Type.STRING,
+                  enum: ['electricity', 'petrol', 'diesel'],
+                  description: 'Type of bill',
+                },
+                units_consumed: {
+                  type: Type.NUMBER,
+                  description: 'Total kWh or Litres consumed as a number, or null if unreadable',
+                  nullable: true,
+                },
+                unit: {
+                  type: Type.STRING,
+                  enum: ['kWh', 'litres'],
+                  description: 'Measurement unit: kWh for electricity, litres for petrol/diesel',
+                },
+                billing_period_days: {
+                  type: Type.INTEGER,
+                  description: 'Number of billing period days, or null if not stated',
+                  nullable: true,
+                },
+                cost_rupees: {
+                  type: Type.NUMBER,
+                  description: 'Total billed or paid amount in INR (₹) as a number, or null',
+                  nullable: true,
+                },
+              },
+              required: ['bill_type', 'unit'],
+            },
+          },
+        });
+
+        responseText = response.text?.trim() || '';
+        if (responseText) {
+          break; // Successfully got response
+        }
+      } catch (err: any) {
+        lastError = err;
+        console.log(`[AI OCR] Model ${modelName} busy or unavailable, attempting next model...`);
+        // Short pause before fallback attempt
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+    }
+
+    if (!responseText && lastError) {
+      throw lastError;
+    }
+
     if (!responseText) {
       return res.status(422).json({
         success: false,
@@ -154,10 +180,24 @@ CRITICAL INSTRUCTIONS:
       data: parsedData,
     });
   } catch (error: any) {
-    console.error('Error in /api/extract-bill:', error);
+    const errString = error?.message || String(error);
+    console.log('[API extract-bill error]:', errString.slice(0, 150));
+    let friendlyMessage = 'Server error during bill extraction. Please try again.';
+
+    if (errString.includes('503') || errString.includes('high demand') || errString.includes('UNAVAILABLE')) {
+      friendlyMessage =
+        'The upstream Google AI OCR service is currently experiencing temporary high traffic. Please retry uploading your receipt in a few seconds.';
+    } else if (errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED')) {
+      friendlyMessage =
+        'Rate limit reached for AI OCR. Please wait a moment and try scanning again.';
+    } else if (errString.includes('API_KEY_INVALID') || errString.includes('UNAUTHENTICATED')) {
+      friendlyMessage =
+        'The configured Gemini API key is invalid or unauthorized. Please verify the key in Settings.';
+    }
+
     return res.status(500).json({
       success: false,
-      error: error?.message || 'Server error during bill extraction. Please try again.',
+      error: friendlyMessage,
     });
   }
 });

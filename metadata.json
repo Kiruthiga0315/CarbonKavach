@@ -1,6 +1,6 @@
 {
   "name": "CarbonKavach",
-  "description": "MSME carbon compliance co-pilot for Indian small businesses, featuring AI bill extraction, deterministic emission calculations, what-if simulations, and auditor-ready reports.",
+  "description": "MSME carbon compliance co-pilot for Indian small businesses, featuring AI bill extraction, deterministic emission calculations, connected-load digital twin machine inventory, what-if simulations, and auditor-ready reports.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

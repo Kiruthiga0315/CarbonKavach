@@ -53,6 +53,7 @@ export const STAGE_DEMO_FIXTURE: RawBillData[] = [
  * Matching Stitch Screen references for Sri Velan Weaving Mills
  */
 export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
+  id: 'biz_sri_velan_mills',
   name: 'Sri Velan Weaving Mills',
   tamil_name: 'ஸ்ரீ வேலன் நெசவாலை',
   facility_type: 'Powerloom & Garment Knitting Facility (LT Tariff III-B)',

@@ -6,8 +6,9 @@ import { DashboardView } from './components/DashboardView';
 import { SimulatorView } from './components/SimulatorView';
 import { ReportView } from './components/ReportView';
 import { ScanningModal } from './components/ScanningModal';
+import { MachineInventoryView } from './components/MachineInventoryView';
 
-import { ActiveTab, Language, RawBillData, ExtractedBillPayload, BillType } from './types';
+import { ActiveTab, Language, RawBillData, ExtractedBillPayload, BillType, Machine } from './types';
 import { STAGE_DEMO_FIXTURE, DEFAULT_BUSINESS_PROFILE, SAMPLE_BILL_PREVIEWS } from './sampleData';
 import { calculateTotalFootprint } from './calculateEmissions';
 import { generateRecommendationOutput } from './recommendationEngine';
@@ -20,6 +21,42 @@ export function App() {
   // Active bills in audit ledger: seeded by default with guaranteed stage-ready demo fixture
   const [bills, setBills] = useState<RawBillData[]>(STAGE_DEMO_FIXTURE);
   const [businessProfile] = useState(DEFAULT_BUSINESS_PROFILE);
+
+  // Machine Inventory: feeds the connected-load digital twin model
+  // Persisted locally so user inputs survive page reloads
+  const [machines, setMachines] = useState<Machine[]>(() => {
+    try {
+      const saved = localStorage.getItem('carbonkavach_machines');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to parse saved machines from localStorage', e);
+    }
+    return [];
+  });
+
+  const handleAddMachine = (newMachine: Machine) => {
+    setMachines((prev) => {
+      const next = [newMachine, ...prev];
+      try {
+        localStorage.setItem('carbonkavach_machines', JSON.stringify(next));
+      } catch (e) {
+        console.warn('Failed to save machines to localStorage', e);
+      }
+      return next;
+    });
+  };
+
+  const handleRemoveMachine = (machineId: string) => {
+    setMachines((prev) => {
+      const next = prev.filter((m) => m.id !== machineId);
+      try {
+        localStorage.setItem('carbonkavach_machines', JSON.stringify(next));
+      } catch (e) {
+        console.warn('Failed to save machines to localStorage', e);
+      }
+      return next;
+    });
+  };
 
   // Scanning Modal States
   const [isScanningModalOpen, setIsScanningModalOpen] = useState(false);
@@ -170,6 +207,16 @@ export function App() {
             businessProfile={businessProfile}
             onNavigateToSimulator={() => setActiveTab('simulator')}
             onNavigateToReport={() => setActiveTab('report')}
+            language={language}
+          />
+        )}
+
+        {activeTab === 'machines' && (
+          <MachineInventoryView
+            machines={machines}
+            onAddMachine={handleAddMachine}
+            onRemoveMachine={handleRemoveMachine}
+            businessProfile={businessProfile}
             language={language}
           />
         )}

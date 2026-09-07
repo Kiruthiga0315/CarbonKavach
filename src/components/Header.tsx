@@ -23,6 +23,10 @@ export const Header: React.FC<HeaderProps> = ({
         return language === 'en' ? 'Bill Scanner Session' : 'ரசீது ஸ்கேனர் பதிவு';
       case 'dashboard':
         return language === 'en' ? 'Compliance Dashboard' : 'கட்டுப்பாட்டு அறை';
+      case 'machines':
+        return language === 'en'
+          ? 'Machine Inventory (Modeled Estimate — Not Sensor Data)'
+          : 'இயந்திரப் பட்டியல் (மாதிரி மதிப்பீடு — சென்சார் அல்ல)';
       case 'simulator':
         return language === 'en' ? 'What-If Decarbonization Simulator' : 'மாதிரி உமிழ்வு கணக்கீடு';
       case 'report':
