@@ -71,10 +71,9 @@ CRITICAL INSTRUCTIONS:
 - Return ONLY the strict JSON object matching the requested schema.`;
 
     const candidateModels = [
-      'gemini-3.6-flash',
+      'gemini-3.8-flash',
       'gemini-3.1-flash-lite',
       'gemini-flash-latest',
-      'gemini-3.8-flash',
     ];
     let lastError: any = null;
     let responseText = '';
@@ -131,6 +130,9 @@ CRITICAL INSTRUCTIONS:
               },
               required: ['bill_type', 'unit'],
             },
+            // Optimize for fast deterministic parsing
+            temperature: 0.1,
+            topK: 10,
           },
         });
 
@@ -140,9 +142,9 @@ CRITICAL INSTRUCTIONS:
         }
       } catch (err: any) {
         lastError = err;
-        console.log(`[AI OCR] Model ${modelName} busy or unavailable, attempting next model...`);
-        // Short pause before fallback attempt
-        await new Promise((resolve) => setTimeout(resolve, 400));
+        console.log(`[AI OCR] Model ${modelName} failed or unavailable, attempting next model...`);
+        // Pause before fallback attempt to respect rate limits/503s
+        await new Promise((resolve) => setTimeout(resolve, 800));
       }
     }
 

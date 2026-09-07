@@ -95,14 +95,56 @@ export function App() {
     setIsScanningModalOpen(true);
 
     try {
-      // Read file to base64
-      const reader = new FileReader();
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-      });
-      reader.readAsDataURL(file);
-      const base64Data = await base64Promise;
+      // Compress image client side before sending to save massive network time
+      let finalBase64Data = '';
+      
+      if (file.type.startsWith('image/')) {
+        const image = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        
+        await new Promise((resolve, reject) => {
+          image.onload = resolve;
+          image.onerror = reject;
+          image.src = objectUrl;
+        });
+        
+        const canvas = document.createElement('canvas');
+        const MAX_DIM = 1600;
+        let { width, height } = image;
+        
+        if (width > height && width > MAX_DIM) {
+          height = Math.round((height * MAX_DIM) / width);
+          width = MAX_DIM;
+        } else if (height > MAX_DIM) {
+          width = Math.round((width * MAX_DIM) / height);
+          height = MAX_DIM;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(image, 0, 0, width, height);
+          finalBase64Data = canvas.toDataURL('image/jpeg', 0.8);
+        } else {
+          // Fallback if canvas context fails
+          const reader = new FileReader();
+          finalBase64Data = await new Promise<string>((resolve, reject) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        }
+        URL.revokeObjectURL(objectUrl);
+      } else {
+        // Fallback for PDFs or non-images
+        const reader = new FileReader();
+        finalBase64Data = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
 
       setPendingBillMeta({
         consumer_name: businessProfile.name,
@@ -112,7 +154,7 @@ export function App() {
       });
 
       // Call AI Extraction Layer (OCR only - never calculates CO2)
-      const data = await extractBillData(base64Data, file.type, categoryHint);
+      const data = await extractBillData(finalBase64Data, file.type, categoryHint);
       setExtractedData(data);
     } catch (err: any) {
       console.error('OCR Extraction error:', err);
