@@ -10,7 +10,7 @@ import { ScanningModal } from './components/ScanningModal';
 import { ActiveTab, Language, RawBillData, ExtractedBillPayload, BillType } from './types';
 import { STAGE_DEMO_FIXTURE, DEFAULT_BUSINESS_PROFILE, SAMPLE_BILL_PREVIEWS } from './sampleData';
 import { calculateTotalFootprint } from './calculateEmissions';
-import { generateRecommendations } from './recommendationEngine';
+import { generateRecommendationOutput } from './recommendationEngine';
 import { extractBillData } from './extractBillData';
 
 export function App() {
@@ -39,9 +39,9 @@ export function App() {
     return calculateTotalFootprint(bills);
   }, [bills]);
 
-  // Pure deterministic recommendations: plain if/else rules
-  const recommendations = useMemo(() => {
-    return generateRecommendations(bills);
+  // Pure deterministic recommendations: plain if/else rules separating Type A and Type B
+  const recommendationOutput = useMemo(() => {
+    return generateRecommendationOutput(bills);
   }, [bills]);
 
   // Handler to load the exact requested stage demo fixture
@@ -165,7 +165,8 @@ export function App() {
           <DashboardView
             bills={bills}
             footprint={footprint}
-            recommendations={recommendations}
+            recommendations={recommendationOutput.derivedRecommendations}
+            generalPractices={recommendationOutput.generalPractices}
             businessProfile={businessProfile}
             onNavigateToSimulator={() => setActiveTab('simulator')}
             onNavigateToReport={() => setActiveTab('report')}
@@ -188,7 +189,8 @@ export function App() {
           <ReportView
             bills={bills}
             footprint={footprint}
-            recommendations={recommendations}
+            recommendations={recommendationOutput.derivedRecommendations}
+            generalPractices={recommendationOutput.generalPractices}
             businessProfile={businessProfile}
             language={language}
           />

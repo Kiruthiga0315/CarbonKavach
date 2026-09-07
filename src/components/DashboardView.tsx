@@ -13,14 +13,30 @@ import {
   Sliders,
   FileDown,
   Info,
+  BookOpen,
+  Tag,
+  Lightbulb,
+  Cpu,
+  Wind,
+  Clock,
+  ArrowRight,
 } from 'lucide-react';
-import { RawBillData, EmissionFootprint, Recommendation, BusinessProfile, Language } from '../types';
+import {
+  RawBillData,
+  EmissionFootprint,
+  DerivedRecommendation,
+  GeneralPractice,
+  BusinessProfile,
+  Language,
+} from '../types';
+import { STATIC_GENERAL_PRACTICES } from '../recommendationEngine';
 import { calculateCO2 } from '../calculateEmissions';
 
 interface DashboardViewProps {
   bills: RawBillData[];
   footprint: EmissionFootprint;
-  recommendations: Recommendation[];
+  recommendations: DerivedRecommendation[];
+  generalPractices?: GeneralPractice[];
   businessProfile: BusinessProfile;
   onNavigateToSimulator: () => void;
   onNavigateToReport: () => void;
@@ -31,6 +47,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   bills,
   footprint,
   recommendations,
+  generalPractices = STATIC_GENERAL_PRACTICES,
   businessProfile,
   onNavigateToSimulator,
   onNavigateToReport,
@@ -378,59 +395,184 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Audit-Approved Reductions */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
+      {/* ========================================================================= */}
+      {/* TYPE A — Derived from your data (Pure arithmetic calculations from bills) */}
+      {/* ========================================================================= */}
+      <div className="space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
           <div>
-            <h3 className="font-serif italic text-lg text-[#2D453E]">
-              {language === 'en' ? 'Audit-Approved Reductions' : 'பரிந்துரைக்கப்பட்ட நடவடிக்கைகள்'}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#2D453E] text-[#A8C69F]">
+                Type A • Derived from your data
+              </span>
+              <span className="text-[11px] font-bold text-[#7C9082]">
+                {recommendations.length} Actionable
+              </span>
+            </div>
+            <h3 className="font-serif italic text-lg text-[#2D453E] mt-1">
+              {language === 'en'
+                ? 'Audit-Approved Reductions (Computed from Ledger)'
+                : 'உங்கள் தரவிலிருந்து கணக்கிடப்பட்ட பரிந்துரைகள்'}
             </h3>
             <p className="text-[11px] text-[#6B705C]">
-              Deterministic rule-based opportunities for cost &amp; CO₂ savings
+              {language === 'en'
+                ? 'Deterministic arithmetic savings traceable directly to specific fields in your uploaded bills'
+                : 'பதிவேற்றப்பட்ட ரசீதுகளின் துல்லியமான எண்களிலிருந்து நேரடியாகக் கணக்கிடப்பட்டவை'}
             </p>
           </div>
-          <span className="bg-[#E9EEDF] text-[#2D453E] text-xs font-bold px-3 py-1 rounded-full border border-[#A8C69F]/30">
-            {recommendations.length} Actionable
-          </span>
         </div>
 
-        <div className="space-y-3">
-          {recommendations.map((rec, idx) => {
-            const monthlySavings = Math.round(rec.estimated_annual_savings_rupees / 12);
-            const monthlyCo2 = (rec.estimated_co2_reduction_kg / 12 / 1000).toFixed(2);
-            const borderAccent = idx % 2 === 0 ? 'border-[#7C9082]' : 'border-[#A8C69F]';
-            const badgeBg = idx % 2 === 0 ? 'bg-[#7C9082]' : 'bg-[#A8C69F] text-[#2D453E]';
+        {recommendations.length === 0 ? (
+          <div className="p-4 rounded-2xl bg-[#F7F5F0] border border-dashed border-[#E6E2D8] text-xs text-[#6B705C] text-center">
+            Upload both electricity and fuel receipts to unlock site-specific calculations.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recommendations.map((rec, idx) => {
+              const monthlySavings = Math.round(rec.estimated_annual_savings_rupees / 12);
+              const monthlyCo2 = (rec.estimated_co2_reduction_kg / 12 / 1000).toFixed(2);
+              const borderAccent = idx % 2 === 0 ? 'border-[#2D453E]' : 'border-[#7C9082]';
+              const badgeBg = idx % 2 === 0 ? 'bg-[#2D453E] text-[#A8C69F]' : 'bg-[#7C9082] text-white';
+
+              return (
+                <div
+                  key={rec.id}
+                  className={`w-full bg-[#F7F5F0] rounded-2xl p-4 sm:p-5 shadow-xs border border-[#E6E2D8] border-l-4 ${borderAccent} space-y-3`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`w-8 h-8 rounded-full ${badgeBg} flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs shadow-xs`}
+                    >
+                      {idx + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#2D453E] bg-white px-2 py-0.5 rounded border border-[#E6E2D8]">
+                          RULE: {rec.rule_id}
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-bold text-[#2D332D] leading-snug mt-1">
+                        {language === 'en' ? rec.title : rec.tamil_title}
+                      </h4>
+                      <p className="text-[11px] text-[#7C9082] mt-0.5">
+                        {language === 'en' ? rec.tamil_title : rec.title}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#6B705C] leading-relaxed pl-11">
+                    {language === 'en' ? rec.reasoning : rec.tamil_reasoning}
+                  </p>
+
+                  {/* Traceable Ledger Field Reference */}
+                  <div className="ml-11 p-2 rounded-xl bg-white border border-[#E6E2D8] text-[11px] text-[#2D332D] flex items-center gap-2">
+                    <Tag className="w-3.5 h-3.5 text-[#7C9082] shrink-0" />
+                    <div className="min-w-0 flex-1 truncate">
+                      <strong className="text-[#2D453E] font-semibold">Ledger Trace:</strong>{' '}
+                      <span className="font-mono text-[#6B705C]">{rec.traceable_field}</span>
+                    </div>
+                  </div>
+
+                  {/* Savings Tags (Type A only) */}
+                  <div className="flex flex-wrap items-center gap-2 pl-11 pt-0.5">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-[#2D453E] text-xs font-bold border border-[#E6E2D8] shadow-2xs">
+                      <span>Save ₹{monthlySavings.toLocaleString('en-IN')}/mo</span>
+                      <span className="text-[10px] text-[#7C9082] font-semibold">
+                        (₹{rec.estimated_annual_savings_rupees.toLocaleString('en-IN')}/yr)
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#2D453E] text-[#FDFCF9] text-xs font-bold shadow-2xs">
+                      <span>−{monthlyCo2} t CO₂/mo</span>
+                      <span className="text-[10px] text-[#A8C69F]">
+                        (−{(rec.estimated_co2_reduction_kg / 1000).toFixed(2)} t/yr)
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* TYPE B — General practices — not calculated from your bills */}
+      {/* Visually and textually distinct: no left accent border, no savings pills */}
+      {/* ========================================================================= */}
+      <div className="space-y-3.5 pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-t border-[#E6E2D8] pt-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#F4F1EA] text-[#6B705C] border border-[#E6E2D8]">
+                Type B • Standard Benchmarks
+              </span>
+              <span className="text-[10px] font-semibold text-[#8C8F7A] uppercase tracking-wider">
+                Uncomputed Advisory
+              </span>
+            </div>
+            <h3 className="font-serif italic text-lg text-[#2D453E] mt-1">
+              {language === 'en'
+                ? 'General practices — not calculated from your bills'
+                : 'பொதுவான செயல்திறன் நடைமுறைகள் — உங்கள் ரசீதுகளிலிருந்து கணக்கிடப்படவில்லை'}
+            </h3>
+            <p className="text-[11px] text-[#6B705C]">
+              {language === 'en'
+                ? 'Standard source-cited MSME efficiency practices displayed without estimated savings figures because they are not computed from this business'
+                : 'நிலையான தொழில்துறை செயல்திறன் வழிகாட்டல்கள். இவை உங்கள் நிறுவனத்தின் குறிப்பிட்ட ரசீதுகளிலிருந்து கணக்கிடப்படவில்லை'}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {generalPractices.map((practice) => {
+            const getIcon = () => {
+              switch (practice.category) {
+                case 'lighting':
+                  return <Lightbulb className="w-4 h-4 text-[#7C9082]" />;
+                case 'motors':
+                  return <Cpu className="w-4 h-4 text-[#7C9082]" />;
+                case 'thermal_leaks':
+                  return <Wind className="w-4 h-4 text-[#7C9082]" />;
+                case 'load_staggering':
+                  return <Clock className="w-4 h-4 text-[#7C9082]" />;
+                default:
+                  return <BookOpen className="w-4 h-4 text-[#7C9082]" />;
+              }
+            };
 
             return (
               <div
-                key={rec.id}
-                className={`w-full bg-[#F7F5F0] rounded-2xl p-4 shadow-sm border border-[#E6E2D8] border-l-4 ${borderAccent} space-y-2`}
+                key={practice.id}
+                className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E6E2D8] space-y-2.5 flex flex-col justify-between shadow-2xs hover:border-[#7C9082]/60 transition-colors"
               >
-                <div className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-full ${badgeBg} flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs shadow-xs`}>
-                    {idx + 1}
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-[#F7F5F0] border border-[#E6E2D8] flex items-center justify-center shrink-0 mt-0.5">
+                      {getIcon()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-xs font-bold text-[#2D332D] leading-tight">
+                        {language === 'en' ? practice.title : practice.tamil_title}
+                      </h4>
+                      <p className="text-[10px] text-[#8C8F7A] mt-0.5">
+                        {language === 'en' ? practice.tamil_title : practice.title}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-xs font-bold text-[#2D332D] leading-tight">
-                      {language === 'en' ? rec.title : rec.tamil_title}
-                    </h4>
-                    <p className="text-[11px] text-[#8C8F7A] mt-0.5">
-                      {language === 'en' ? rec.tamil_title : rec.title}
-                    </p>
-                  </div>
+
+                  <p className="text-xs text-[#6B705C] leading-relaxed">
+                    {language === 'en' ? practice.description : practice.tamil_description}
+                  </p>
                 </div>
 
-                <p className="text-xs text-[#6B705C] leading-relaxed pl-11">
-                  {language === 'en' ? rec.reasoning : rec.tamil_reasoning}
-                </p>
-
-                <div className="flex flex-wrap items-center gap-2 pl-11 pt-1">
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white text-[#2D453E] text-xs font-bold border border-[#E6E2D8]">
-                    <span>Save ₹{monthlySavings.toLocaleString('en-IN')}/mo</span>
-                    <span className="text-[10px] text-[#8C8F7A]">(சேமிப்பு)</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#2D453E] text-[#FDFCF9] text-xs font-bold">
-                    <span>−{monthlyCo2} t CO₂/mo</span>
+                {/* Source Citation & Explicit Uncomputed Tag (No rupee/CO2 savings tags) */}
+                <div className="pt-2 border-t border-[#F4F1EA] flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-[10px]">
+                  <div className="flex items-center gap-1.5 text-[#7C9082] truncate">
+                    <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                    <span className="font-semibold truncate">Ref: {practice.source_citation}</span>
+                  </div>
+                  <span className="text-[9px] uppercase font-bold text-[#8C8F7A] tracking-wider shrink-0">
+                    No savings computed
                   </span>
                 </div>
               </div>

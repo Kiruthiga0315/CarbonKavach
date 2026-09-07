@@ -13,16 +13,27 @@ import {
   Check,
   FileDown,
   Sparkles,
+  BookOpen,
+  Tag,
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { RawBillData, EmissionFootprint, Recommendation, BusinessProfile, Language } from '../types';
+import {
+  RawBillData,
+  EmissionFootprint,
+  DerivedRecommendation,
+  GeneralPractice,
+  BusinessProfile,
+  Language,
+} from '../types';
+import { STATIC_GENERAL_PRACTICES } from '../recommendationEngine';
 import { EMISSION_FACTOR_METADATA } from '../emissionFactors';
 
 interface ReportViewProps {
   bills: RawBillData[];
   footprint: EmissionFootprint;
-  recommendations: Recommendation[];
+  recommendations: DerivedRecommendation[];
+  generalPractices?: GeneralPractice[];
   businessProfile: BusinessProfile;
   language: Language;
 }
@@ -31,6 +42,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
   bills,
   footprint,
   recommendations,
+  generalPractices = STATIC_GENERAL_PRACTICES,
   businessProfile,
   language,
 }) => {
@@ -450,26 +462,112 @@ export const ReportView: React.FC<ReportViewProps> = ({
           </div>
         </div>
 
-        {/* Actionable Recommendations Summary */}
-        <div className="space-y-2">
-          <h3 className="text-xs font-bold text-[#2D453E] uppercase tracking-wider">
-            2. Approved Energy Efficiency Pathways
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-            {recommendations.slice(0, 3).map((rec, i) => (
-              <div
-                key={rec.id || i}
-                className="p-3.5 rounded-2xl border border-[#E6E2D8] bg-[#F7F5F0] space-y-1"
-              >
-                <div className="font-bold text-[#2D453E]">{rec.title}</div>
-                <div className="text-[10px] text-[#7C9082]">{rec.tamil_title}</div>
-                <p className="text-[11px] text-[#6B705C] leading-tight">{rec.reasoning}</p>
-                <div className="pt-1.5 flex items-center justify-between text-[10px] font-bold text-[#2D453E]">
-                  <span>Est. Annual: ₹{rec.estimated_annual_savings_rupees.toLocaleString('en-IN')}</span>
-                  <span>−{(rec.estimated_co2_reduction_kg / 1000).toFixed(2)} t CO₂/yr</span>
+        {/* Actionable Recommendations Summary: Split into 2A (Derived) and 2B (General) */}
+        <div className="space-y-4">
+          {/* Subsection 2A: Derived from Ledger Data */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#2D453E] text-[#A8C69F]">
+                    Section 2A • Site-Specific Ledger Calculations
+                  </span>
                 </div>
+                <h3 className="text-xs font-bold text-[#2D453E] uppercase tracking-wider mt-1">
+                  2A. Audit-Approved Reductions (Derived from Your Data)
+                </h3>
+                <p className="text-[10px] text-[#6B705C]">
+                  Deterministic arithmetic savings traceable directly to specific fields in your uploaded bills
+                </p>
               </div>
-            ))}
+              <span className="text-[10px] font-mono font-bold text-[#7C9082]">
+                {recommendations.length} Active Rules
+              </span>
+            </div>
+
+            {recommendations.length === 0 ? (
+              <div className="p-3 rounded-xl border border-dashed border-[#E6E2D8] bg-[#F7F5F0] text-[11px] text-[#6B705C] text-center">
+                No site-specific reduction rules triggered for current bill ledger.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                {recommendations.map((rec, i) => (
+                  <div
+                    key={rec.id || i}
+                    className="p-3.5 rounded-2xl border border-[#E6E2D8] border-l-4 border-[#2D453E] bg-[#F7F5F0] space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-mono font-bold uppercase text-[#2D453E] bg-white px-1.5 py-0.5 rounded border border-[#E6E2D8]">
+                        RULE: {rec.rule_id}
+                      </span>
+                    </div>
+                    <div className="font-bold text-[#2D453E] leading-snug">{rec.title}</div>
+                    <div className="text-[10px] text-[#7C9082]">{rec.tamil_title}</div>
+                    <p className="text-[11px] text-[#6B705C] leading-tight">{rec.reasoning}</p>
+
+                    {/* Traceable Ledger Field Reference */}
+                    <div className="p-1.5 rounded-lg bg-white border border-[#E6E2D8] text-[10px] text-[#2D332D] flex items-center gap-1.5">
+                      <Tag className="w-3 h-3 text-[#7C9082] shrink-0" />
+                      <span className="truncate">
+                        <strong className="text-[#2D453E]">Trace:</strong> {rec.traceable_field}
+                      </span>
+                    </div>
+
+                    <div className="pt-1 flex items-center justify-between text-[10px] font-bold text-[#2D453E]">
+                      <span className="bg-white px-2 py-0.5 rounded-full border border-[#E6E2D8]">
+                        Est. Annual: ₹{rec.estimated_annual_savings_rupees.toLocaleString('en-IN')}
+                      </span>
+                      <span className="bg-[#2D453E] text-[#FDFCF9] px-2 py-0.5 rounded-full">
+                        −{(rec.estimated_co2_reduction_kg / 1000).toFixed(2)} t CO₂/yr
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Subsection 2B: General MSME Practices (Clearly labeled as generic, no savings computed) */}
+          <div className="space-y-2.5 pt-2 border-t border-[#E6E2D8]">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#F4F1EA] text-[#6B705C] border border-[#E6E2D8]">
+                    Section 2B • General practices — not calculated from your bills
+                  </span>
+                </div>
+                <h3 className="text-xs font-bold text-[#2D453E] uppercase tracking-wider mt-1">
+                  2B. Standard MSME Efficiency Guidelines (Source-Cited Benchmarks)
+                </h3>
+                <p className="text-[10px] text-[#6B705C]">
+                  Generic best practices for industrial facilities. No rupee/CO₂ savings are attached as these are not computed from your ledger.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              {generalPractices.map((practice) => (
+                <div
+                  key={practice.id}
+                  className="p-3 rounded-xl border border-[#E6E2D8] bg-white space-y-1.5 flex flex-col justify-between shadow-2xs"
+                >
+                  <div className="space-y-1">
+                    <div className="font-bold text-[#2D332D] text-xs leading-snug">{practice.title}</div>
+                    <div className="text-[10px] text-[#8C8F7A]">{practice.tamil_title}</div>
+                    <p className="text-[11px] text-[#6B705C] leading-tight">{practice.description}</p>
+                  </div>
+                  <div className="pt-1.5 border-t border-[#F4F1EA] flex items-center justify-between text-[9px]">
+                    <span className="text-[#7C9082] font-semibold truncate flex items-center gap-1">
+                      <BookOpen className="w-3 h-3 shrink-0" />
+                      {practice.source_citation}
+                    </span>
+                    <span className="text-[#8C8F7A] uppercase font-bold tracking-wider shrink-0">
+                      Uncomputed
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

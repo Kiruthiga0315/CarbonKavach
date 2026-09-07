@@ -30,8 +30,10 @@ export interface EmissionFootprint {
   total_tonnes: number;
 }
 
-export interface Recommendation {
+// TYPE A — "Derived from your data" (must include specific rupee/CO2 numbers traceable to ledger fields)
+export interface DerivedRecommendation {
   id: string;
+  rule_id: 'fuel_vs_grid' | 'diesel_generator' | 'consumption_trend' | 'peak_offpeak_ht' | 'petrol_vehicle_tagging';
   title: string;
   tamil_title: string;
   estimated_annual_savings_rupees: number;
@@ -39,6 +41,28 @@ export interface Recommendation {
   reasoning: string;
   tamil_reasoning: string;
   category: 'solar' | 'efficiency' | 'fuel_switch' | 'logistics';
+  traceable_field: string;
+  computation_trace?: string;
+}
+
+// Alias for backward compatibility
+export type Recommendation = DerivedRecommendation;
+
+// TYPE B — "General efficiency practices" (no rupee/CO2 figures, generic MSME practices with source citations)
+export interface GeneralPractice {
+  id: string;
+  title: string;
+  tamil_title: string;
+  description: string;
+  tamil_description: string;
+  source_citation: string;
+  category: 'lighting' | 'motors' | 'thermal_leaks' | 'load_staggering';
+}
+
+// Two clearly separated output types — do not merge them into one list
+export interface RecommendationOutput {
+  derivedRecommendations: DerivedRecommendation[]; // TYPE A
+  generalPractices: GeneralPractice[]; // TYPE B
 }
 
 export interface BusinessProfile {
