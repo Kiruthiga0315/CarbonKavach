@@ -98,5 +98,5 @@ export interface Machine {
   created_at?: string;
 }
 
-export type ActiveTab = 'upload' | 'dashboard' | 'machines' | 'simulator' | 'report';
+export type ActiveTab = 'upload' | 'dashboard' | 'machines' | 'simulator' | 'report' | 'live';
 export type Language = 'en' | 'ta';

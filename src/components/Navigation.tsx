@@ -1,5 +1,5 @@
 import React from 'react';
-import { UploadCloud, LayoutDashboard, Cpu, SlidersHorizontal, FileCheck } from 'lucide-react';
+import { UploadCloud, LayoutDashboard, Cpu, SlidersHorizontal, FileCheck, Activity } from 'lucide-react';
 import { ActiveTab, Language } from '../types';
 
 interface NavigationProps {
@@ -43,6 +43,12 @@ export const Navigation: React.FC<NavigationProps> = ({
       labelEn: 'Report',
       labelTa: 'அறிக்கை',
       icon: <FileCheck className="w-5 h-5" />,
+    },
+    {
+      id: 'live',
+      labelEn: 'Live Preview (Simulated)',
+      labelTa: 'நேரடி (மாதிரி)',
+      icon: <Activity className="w-5 h-5" />,
     },
   ];
 

@@ -7,6 +7,7 @@ import { SimulatorView } from './components/SimulatorView';
 import { ReportView } from './components/ReportView';
 import { ScanningModal } from './components/ScanningModal';
 import { MachineInventoryView } from './components/MachineInventoryView';
+import { LiveOpsPreview } from './components/LiveOpsPreview';
 
 import { ActiveTab, Language, RawBillData, ExtractedBillPayload, BillType, Machine } from './types';
 import { STAGE_DEMO_FIXTURE, DEFAULT_BUSINESS_PROFILE, SAMPLE_BILL_PREVIEWS } from './sampleData';
@@ -270,6 +271,13 @@ export function App() {
               // Simulation applied feedback
             }}
             onNavigateToReport={() => setActiveTab('report')}
+            language={language}
+          />
+        )}
+
+        {activeTab === 'live' && (
+          <LiveOpsPreview
+            machines={machines}
             language={language}
           />
         )}
